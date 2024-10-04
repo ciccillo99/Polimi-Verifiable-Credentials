@@ -1,0 +1,12 @@
+{
+  "version": "4.0.0",
+  "description": "Date Validator built using zk-email",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "packageManager": "yarn@3.2.3"
+}
