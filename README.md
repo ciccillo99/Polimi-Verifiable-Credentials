@@ -155,3 +155,4 @@ If you want to update the UI based on your own zkeys and contracts, please make 
 
 This repo was originally part of the [zk-email-verify](https://github.com/zkemail/zk-email-verify). Please refer there for the commit history and original contributors.
 # Polimi-Verifiable-Credentials
+# Polimi-Verifiable-Credentials
