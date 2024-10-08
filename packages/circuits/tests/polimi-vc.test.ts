@@ -45,7 +45,6 @@ describe("Verifier Circuit Test with Proof Generation", function () {
     console.log("Witness calculated");
     await circuit.checkConstraints(witness);
     console.log("Costraint checked");
-    // Carica i simboli del circuito
 
     const dkimResult = await verifyDKIMSignature(rawEmail, "polimi.it");
     const poseidon = await buildPoseidon();
