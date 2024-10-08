@@ -6,14 +6,13 @@ const snarkjs = require("snarkjs");
 
 program
   .requiredOption("--email-file <string>", "Path to email file")
-  .requiredOption("--ref-year <string>", "Reference year for the circuit")
-  .requiredOption("--ref-month <string>", "Reference month for the circuit")
+  .requiredOption("--eth-address <string>", "Ethereum address for the circuit")
   .option("--silent", "No console logs");
 
 program.parse();
 const args = program.opts();
 
-const CIRCUIT_NAME = "date-validator"; // Assicurati che il nome del circuito sia corretto
+const CIRCUIT_NAME = "main"; // Assicurati che il nome del circuito sia corretto
 const BUILD_DIR = path.join(__dirname, "../build");
 const OUTPUT_DIR = path.join(__dirname, "../proofs");
 
@@ -37,10 +36,11 @@ async function generate(): Promise<void> {
   log("Generating input and proof for:", args.emailFile);
 
   const rawEmail = Buffer.from(fs.readFileSync(args.emailFile, "utf8"));
+  
+  // Modifica per utilizzare l'ethereum address al posto di refYear/refMonth
   const circuitInputs = await generateVerifierCircuitInputs(
     rawEmail,
-    args.refYear,
-    args.refMonth
+    args.ethAddress // Passa l'indirizzo Ethereum
   );
 
   log("\n\nGenerated Inputs:", circuitInputs, "\n\n");
@@ -99,4 +99,3 @@ generate().catch((err) => {
   console.error("Error generating proof", err);
   process.exit(1);
 });
-

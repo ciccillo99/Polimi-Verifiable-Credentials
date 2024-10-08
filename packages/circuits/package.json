@@ -1,10 +1,9 @@
 {
-  "name": "@date-validator/circuits",
-  "version": "4.0.0",
-  "license": "MIT",
+  "name": "@polimi-verifiable-credentials/circuits",
+  "version": "1.0.0",
   "scripts": {
-    "build": "mkdir -p build && circom src/date-validator.circom -l ../../node_modules -l ./node_modules --wasm --r1cs --sym -o ./build",
-    "generate-all-regex": "zk-regex decomposed -d ./src/date.json -c ./src/date-regex.circom -t DateRegex -g true && zk-regex decomposed -d ./src/successo.json -c ./src/successo-regex.circom -t SuccessoRegex -g true && zk-regex decomposed -d ./src/iuv.json -c ./src/iuv-regex.circom -t IUVRegex -g true && zk-regex decomposed -d ./src/nome_cognome.json -c ./src/nome-cognome-regex.circom -t NomeCognomeRegex -g true && zk-regex decomposed -d ./src/matricola.json -c ./src/matricola-regex.circom -t MatricolaRegex -g true && zk-regex decomposed -d ./src/importo.json -c ./src/importo-regex.circom -t ImportoRegex -g true",
+    "build": "mkdir -p build && circom src/main.circom -l ../../node_modules -l ./node_modules --wasm --r1cs --sym -o ./build",
+    "generate-all-regex": "zk-regex decomposed -d ./src/data.json -c ./src/data-regex.circom -t DataRegex -g true && zk-regex decomposed -d ./src/successo.json -c ./src/successo-regex.circom -t SuccessoRegex -g true && zk-regex decomposed -d ./src/iuv.json -c ./src/iuv-regex.circom -t IUVRegex -g true && zk-regex decomposed -d ./src/nome-cognome.json -c ./src/nome-cognome-regex.circom -t NomeCognomeRegex -g true && zk-regex decomposed -d ./src/matricola.json -c ./src/matricola-regex.circom -t MatricolaRegex -g true && zk-regex decomposed -d ./src/importo.json -c ./src/importo-regex.circom -t ImportoRegex -g true",
     "test": "NODE_OPTIONS=--max_old_space_size=16384 jest"
   },
   "dependencies": {
@@ -21,7 +20,7 @@
     "@types/pako": "^2.0.3",
     "babel-preset-jest": "^29.6.3",
     "chai": "^4.3.7",
-    "circom_tester": "^0.0.19",
+    "circom_tester": "git+https://github.com/iden3/circom_tester.git#38a7e8a2be4c300075ed0451e265ab6ea0911f0b",
     "circomlib": "^2.0.5",
     "circomlibjs": "^0.1.7",
     "ffjavascript": "^0.2.59",

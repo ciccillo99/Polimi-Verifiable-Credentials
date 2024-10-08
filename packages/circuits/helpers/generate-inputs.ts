@@ -1,67 +1,75 @@
 import { generateEmailVerifierInputs } from "@zk-email/helpers/dist/input-generators";
+import { bytesToBigInt, fromHex } from "@zk-email/helpers/dist/binary-format";
 
 export type IVerifierCircuitInputs = {
   emailHeader: string[];
   emailHeaderLength: string;
+  emailBody?: string[] | undefined;
+  emailBodyLength?: string | undefined;
+  precomputedSHA?: string[] | undefined;
+  bodyHashIndex?: string | undefined;
   pubkey: string[];
   signature: string[];
-  monthIndex: string;
-  yearIndex: string;
-  refYear: string;
-  refMonth: string;
+  fromEmailIndex: string;
+  nomeIndex: string;
+  dataIndex: string;
+  importoIndex: string;
+  matricolaIndex: string;
+  IUVIndex: string;
+  address: string;
 };
-  export async function generateVerifierCircuitInputs(
-    email: string | Buffer,
-    refYear: string, 
-    refMonth: string
-  ): Promise<IVerifierCircuitInputs> {
-    // Genera gli input necessari per la verifica della firma DKIM
-    const emailVerifierInputs = await generateEmailVerifierInputs(email);
-  
-    const emailHeaderBuffer = Buffer.from(emailVerifierInputs.emailHeader.map((c) => Number(c)));
-  
-    // Usa il preselettore per individuare l'header "date:"
-    const dateSelector = Buffer.from("date:", 'utf-8');
-    const dateIndex = emailHeaderBuffer.indexOf(dateSelector);
-  
-    if (dateIndex === -1) {
-      throw new Error("Impossibile trovare l'header 'date:' nell'email.");
-    }
-  
-    // Trova il primo spazio dopo "date:Wed,"
-    const firstSpaceAfterDate = emailHeaderBuffer.indexOf(Buffer.from(" ", 'utf-8'), dateIndex + dateSelector.length);
-    if (firstSpaceAfterDate === -1) {
-      throw new Error("Impossibile trovare il primo spazio dopo la data.");
-    }
-  
-    // Trova il secondo spazio dopo il giorno (per gestire giorni a una o due cifre)
-    const secondSpaceAfterDate = emailHeaderBuffer.indexOf(Buffer.from(" ", 'utf-8'), firstSpaceAfterDate + 1);
-    if (secondSpaceAfterDate === -1) {
-      throw new Error("Impossibile trovare il secondo spazio dopo la data.");
-    }
-  
-    // L'indice del mese sarà subito dopo il secondo spazio (dopo "3 " o "31 ")
-    const monthIndex = secondSpaceAfterDate + 1;
-  
-    // L'indice dell'anno sarà 5 caratteri dopo l'indice del mese (perché anno ha 4 caratteri)
-    const yearIndex = monthIndex + 4;
-  
-    console.log(`monthIndex: ${monthIndex}, yearIndex: ${yearIndex}`);  // Debug
-  
-    if (monthIndex === -1 || yearIndex === -1) {
-      throw new Error("Impossibile trovare il mese o l'anno nell'header dell'email.");
-    }
-  
-    // Converti gli indici in stringhe, come nell'esempio di Twitter
-    return {
-      emailHeader: emailVerifierInputs.emailHeader,
-      emailHeaderLength: emailVerifierInputs.emailHeaderLength,
-      pubkey: emailVerifierInputs.pubkey,
-      signature: emailVerifierInputs.signature,
-      monthIndex: monthIndex.toString(),  
-      yearIndex: yearIndex.toString(),    
-      refYear,
-      refMonth,
-    };
+
+const FROM_SELECTOR = "from:";
+const DATE_SELECTOR = "date:";
+const NOME_SELECTOR = "Gentile ";
+const IUV_SELECTOR = "IUV: ";
+const IMPORTO_SELECTOR = "Importo Euro: ";
+const MATRICOLA_SELECTOR = "(";
+
+export async function generateVerifierCircuitInputs(
+  email: string | Buffer,
+  ethereumAddress: string
+): Promise<IVerifierCircuitInputs> {
+  const emailVerifierInputs = await generateEmailVerifierInputs(email);
+
+  const emailHeaderBuffer = Buffer.from(emailVerifierInputs.emailHeader.map((c) => Number(c)));
+
+  // Gestisci il caso in cui emailBody potrebbe essere undefined
+  let emailBodyBuffer: Buffer;
+  if (emailVerifierInputs.emailBody) {
+    emailBodyBuffer = Buffer.from(emailVerifierInputs.emailBody.map((c) => Number(c)));
+  } else {
+    throw new Error("Email body is undefined");
   }
-  
+
+  const address = bytesToBigInt(fromHex(ethereumAddress)).toString();
+
+  // Trova l'indice di "from:" nell'header dell'email
+  const fromEmailIndex = emailHeaderBuffer.indexOf(Buffer.from(FROM_SELECTOR)) + FROM_SELECTOR.length;
+
+  // Trova l'indice di "date:" nell'header dell'email
+  const dataIndex = emailHeaderBuffer.indexOf(Buffer.from(DATE_SELECTOR)) + DATE_SELECTOR.length;
+
+  // Trova l'indice di "Gentile " nel corpo dell'email per il nome
+  const nomeIndex = emailBodyBuffer.indexOf(Buffer.from(NOME_SELECTOR)) + NOME_SELECTOR.length;
+
+  // Trova l'indice di "IUV: " nel corpo dell'email
+  const IUVIndex = emailBodyBuffer.indexOf(Buffer.from(IUV_SELECTOR)) + IUV_SELECTOR.length;
+
+  // Trova l'indice di "Importo Euro: " nel corpo dell'email
+  const importoIndex = emailBodyBuffer.indexOf(Buffer.from(IMPORTO_SELECTOR)) + IMPORTO_SELECTOR.length;
+
+  // Trova l'indice della matricola (presente dopo il nome tra parentesi)
+  const matricolaIndex = emailBodyBuffer.indexOf(Buffer.from(MATRICOLA_SELECTOR)) + MATRICOLA_SELECTOR.length;
+
+  return {
+    ...emailVerifierInputs,
+    fromEmailIndex: fromEmailIndex.toString(),
+    nomeIndex: nomeIndex.toString(),
+    dataIndex: dataIndex.toString(),
+    importoIndex: importoIndex.toString(),
+    matricolaIndex: matricolaIndex.toString(),
+    IUVIndex: IUVIndex.toString(),
+    address,
+  };
+}

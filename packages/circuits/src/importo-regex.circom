@@ -2,7 +2,7 @@ pragma circom 2.1.5;
 
 include "@zk-email/zk-regex-circom/circuits/regex_helpers.circom";
 
-// regex: Importo Euro: ([0-9]+[.][0-9]{2})
+// regex: Importo Euro: ([0-9]+)
 template ImportoRegex(msg_bytes) {
 	signal input msg[msg_bytes];
 	signal output out;
@@ -14,21 +14,21 @@ template ImportoRegex(msg_bytes) {
 		in[i+1] <== msg[i];
 	}
 
-	component eq[21][num_bytes];
-	component and[19][num_bytes];
+	component eq[20][num_bytes];
+	component and[16][num_bytes];
 	component multi_or[2][num_bytes];
-	signal states[num_bytes+1][19];
-	signal states_tmp[num_bytes+1][19];
+	signal states[num_bytes+1][16];
+	signal states_tmp[num_bytes+1][16];
 	signal from_zero_enabled[num_bytes+1];
 	from_zero_enabled[num_bytes] <== 0;
 	component state_changed[num_bytes];
 
-	for (var i = 1; i < 19; i++) {
+	for (var i = 1; i < 16; i++) {
 		states[0][i] <== 0;
 	}
 
 	for (var i = 0; i < num_bytes; i++) {
-		state_changed[i] = MultiOR(18);
+		state_changed[i] = MultiOR(15);
 		states[i][0] <== 1;
 		eq[0][i] = IsEqual();
 		eq[0][i].in[0] <== in[i];
@@ -167,22 +167,7 @@ template ImportoRegex(msg_bytes) {
 		multi_or[1][i].in[0] <== and[14][i].out;
 		multi_or[1][i].in[1] <== and[15][i].out;
 		states[i+1][15] <== multi_or[1][i].out;
-		eq[20][i] = IsEqual();
-		eq[20][i].in[0] <== in[i];
-		eq[20][i].in[1] <== 46;
-		and[16][i] = AND();
-		and[16][i].a <== states[i][15];
-		and[16][i].b <== eq[20][i].out;
-		states[i+1][16] <== and[16][i].out;
-		and[17][i] = AND();
-		and[17][i].a <== states[i][16];
-		and[17][i].b <== multi_or[0][i].out;
-		states[i+1][17] <== and[17][i].out;
-		and[18][i] = AND();
-		and[18][i].a <== states[i][17];
-		and[18][i].b <== multi_or[0][i].out;
-		states[i+1][18] <== and[18][i].out;
-		from_zero_enabled[i] <== MultiNOR(18)([states_tmp[i+1][1], states[i+1][2], states[i+1][3], states[i+1][4], states[i+1][5], states[i+1][6], states[i+1][7], states[i+1][8], states[i+1][9], states[i+1][10], states[i+1][11], states[i+1][12], states[i+1][13], states[i+1][14], states[i+1][15], states[i+1][16], states[i+1][17], states[i+1][18]]);
+		from_zero_enabled[i] <== MultiNOR(15)([states_tmp[i+1][1], states[i+1][2], states[i+1][3], states[i+1][4], states[i+1][5], states[i+1][6], states[i+1][7], states[i+1][8], states[i+1][9], states[i+1][10], states[i+1][11], states[i+1][12], states[i+1][13], states[i+1][14], states[i+1][15]]);
 		states[i+1][1] <== MultiOR(2)([states_tmp[i+1][1], from_zero_enabled[i] * and[0][i].out]);
 		state_changed[i].in[0] <== states[i+1][1];
 		state_changed[i].in[1] <== states[i+1][2];
@@ -199,36 +184,30 @@ template ImportoRegex(msg_bytes) {
 		state_changed[i].in[12] <== states[i+1][13];
 		state_changed[i].in[13] <== states[i+1][14];
 		state_changed[i].in[14] <== states[i+1][15];
-		state_changed[i].in[15] <== states[i+1][16];
-		state_changed[i].in[16] <== states[i+1][17];
-		state_changed[i].in[17] <== states[i+1][18];
 	}
 
 	component is_accepted = MultiOR(num_bytes+1);
 	for (var i = 0; i <= num_bytes; i++) {
-		is_accepted.in[i] <== states[i][18];
+		is_accepted.in[i] <== states[i][15];
 	}
 	out <== is_accepted.out;
 	signal is_consecutive[msg_bytes+1][3];
 	is_consecutive[msg_bytes][2] <== 0;
 	for (var i = 0; i < msg_bytes; i++) {
-		is_consecutive[msg_bytes-1-i][0] <== states[num_bytes-i][18] * (1 - is_consecutive[msg_bytes-i][2]) + is_consecutive[msg_bytes-i][2];
+		is_consecutive[msg_bytes-1-i][0] <== states[num_bytes-i][15] * (1 - is_consecutive[msg_bytes-i][2]) + is_consecutive[msg_bytes-i][2];
 		is_consecutive[msg_bytes-1-i][1] <== state_changed[msg_bytes-i].out * is_consecutive[msg_bytes-1-i][0];
-		is_consecutive[msg_bytes-1-i][2] <== ORAnd()([(1 - from_zero_enabled[msg_bytes-i+1]), states[num_bytes-i][18], is_consecutive[msg_bytes-1-i][1]]);
+		is_consecutive[msg_bytes-1-i][2] <== ORAnd()([(1 - from_zero_enabled[msg_bytes-i+1]), states[num_bytes-i][15], is_consecutive[msg_bytes-1-i][1]]);
 	}
-	// substrings calculated: [{(14, 15), (15, 15), (15, 16), (16, 17), (17, 18)}]
-	signal prev_states0[5][msg_bytes];
+	// substrings calculated: [{(14, 15), (15, 15)}]
+	signal prev_states0[2][msg_bytes];
 	signal is_substr0[msg_bytes];
 	signal is_reveal0[msg_bytes];
 	signal output reveal0[msg_bytes];
 	for (var i = 0; i < msg_bytes; i++) {
-		 // the 0-th substring transitions: [(14, 15), (15, 15), (15, 16), (16, 17), (17, 18)]
+		 // the 0-th substring transitions: [(14, 15), (15, 15)]
 		prev_states0[0][i] <== (1 - from_zero_enabled[i+1]) * states[i+1][14];
 		prev_states0[1][i] <== (1 - from_zero_enabled[i+1]) * states[i+1][15];
-		prev_states0[2][i] <== (1 - from_zero_enabled[i+1]) * states[i+1][15];
-		prev_states0[3][i] <== (1 - from_zero_enabled[i+1]) * states[i+1][16];
-		prev_states0[4][i] <== (1 - from_zero_enabled[i+1]) * states[i+1][17];
-		is_substr0[i] <== MultiOR(5)([prev_states0[0][i] * states[i+2][15], prev_states0[1][i] * states[i+2][15], prev_states0[2][i] * states[i+2][16], prev_states0[3][i] * states[i+2][17], prev_states0[4][i] * states[i+2][18]]);
+		is_substr0[i] <== MultiOR(2)([prev_states0[0][i] * states[i+2][15], prev_states0[1][i] * states[i+2][15]]);
 		is_reveal0[i] <== MultiAND(3)([out, is_substr0[i], is_consecutive[i][2]]);
 		reveal0[i] <== in[i+1] * is_reveal0[i];
 	}
