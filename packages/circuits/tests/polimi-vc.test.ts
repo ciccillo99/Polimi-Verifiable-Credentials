@@ -54,29 +54,34 @@ describe("Verifier Circuit Test with Proof Generation", function () {
     // Verify the name is correctly extracted and packed form email body
     const nameInEmailBytes = new TextEncoder().encode("FRANCESCO CARBONE ").reverse(); // Circuit pack in reverse order
     expect(witness[1]).toEqual(bytesToBigInt(nameInEmailBytes));
+    console.log("Name checked");
 
     // Verify the date is correctly extracted and packed form email body
     const data = new TextEncoder().encode("Wed, 3 May 2023 18:35:03 +0200 ").reverse(); // Circuit pack in reverse order
     expect(witness[2]).toEqual(bytesToBigInt(data));
+    console.log("Date checked");
 
     // Verify the amount is correctly extracted and packed form email body
     const importo = new TextEncoder().encode("1065").reverse(); // Circuit pack in reverse order
     expect(witness[3]).toEqual(bytesToBigInt(importo));
+    console.log("Amount checked");
 
     // Verify the matricola is correctly extracted and packed form email body
     const matricola = new TextEncoder().encode("10834998").reverse(); // Circuit pack in reverse order
     expect(witness[4]).toEqual(bytesToBigInt(matricola));
+    console.log("Matricola checked");
     
     // Assert pubkey hash
     expect(witness[5]).toEqual(poseidon.F.toObject(hash));
+    console.log("Pubkey hash checked");
 
     // Verify the from field is correctly extracted and packed form email body
     const from = new TextEncoder().encode("messaggi.automatici@polimi.it").reverse(); // Circuit pack in reverse order
     expect(witness[6]).toEqual(bytesToBigInt(from));
+    console.log("From address checked");
 
     // Check address public input
     expect(witness[7]).toEqual(BigInt(ethereumAddress));
-
 
     // Genera la prova e verifica la validità
     const wasm = fs.readFileSync(
@@ -110,3 +115,4 @@ describe("Verifier Circuit Test with Proof Generation", function () {
   it(`should validate email and generate proof`, async function () {
     await testWithEmail();
   });
+});
