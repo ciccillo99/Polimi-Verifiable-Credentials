@@ -100,8 +100,8 @@ template PolimiVC(maxHeaderLength, maxBodyLength, maxMonthBytes, maxYearBytes, n
     isIUVFoundValid === 1;
 
     // Estraggo la data
-    var maxDataLength = 20;
-    signal dataPacks[1] <== PackRegexReveal(maxHeaderLength, maxDataLength)(dataReveal, dataIndex);
+    var maxDataLength = 40;
+    signal dataPacks[2] <== PackRegexReveal(maxHeaderLength, maxDataLength)(dataReveal, dataIndex);
 
     // Estraggo il nome
     var maxNameLength = 50;
