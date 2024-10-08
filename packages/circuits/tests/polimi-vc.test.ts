@@ -1,11 +1,14 @@
 import { generateVerifierCircuitInputs } from "../helpers";
+import { buildPoseidon } from "circomlibjs";
+import { verifyDKIMSignature } from "@zk-email/helpers/dist/dkim";
+import { bigIntToChunkedBytes, bytesToBigInt, packedNBytesToString } from "@zk-email/helpers/dist/binary-format";
 const path = require("path");
 const fs = require("fs");
 const snarkjs = require("snarkjs");
 const wasm_tester = require("circom_tester").wasm;
 
 describe("Verifier Circuit Test with Proof Generation", function () {
-  jest.setTimeout(30 * 60 * 1000); // 10 minuti
+  jest.setTimeout(60 * 60 * 1000); // 10 minuti
 
   let rawEmail: Buffer;
   let circuit: any;
@@ -33,7 +36,7 @@ describe("Verifier Circuit Test with Proof Generation", function () {
 
   async function testWithEmail() {
     // Genera gli input per il circuito a partire dal file email
-    const ethereumAddress = "0x3773fd7b2a9CF6FF3E3EfD82Bd30536E11e83b6f"; // Puoi passare l'indirizzo Ethereum se necessario
+    const ethereumAddress = "0x3773fd7b2a9CF6FF3E3EfD82Bd30536E11e83b6f"; 
     const circuitInputs = await generateVerifierCircuitInputs(rawEmail, ethereumAddress);
 
     console.log("Circuit Inputs:", circuitInputs);
@@ -43,27 +46,38 @@ describe("Verifier Circuit Test with Proof Generation", function () {
     await circuit.checkConstraints(witness);
     console.log("Costraint checked");
     // Carica i simboli del circuito
-    await circuit.loadSymbols();
-    console.log("Symbols loaded");
 
-    // Estrazione di variabili interne per verificare gli output
-    const fromIndex = circuit.symbols["main.fromEmailIndex"].varIdx;
-    console.log("fromEmailIndex: ", witness[fromIndex]);
+    const dkimResult = await verifyDKIMSignature(rawEmail, "polimi.it");
+    const poseidon = await buildPoseidon();
+    const pubkeyChunked = bigIntToChunkedBytes(dkimResult.publicKey, 242, 9);
+    const hash = poseidon(pubkeyChunked);
 
-    const nomeIndex = circuit.symbols["main.nomeIndex"].varIdx;
-    console.log("nomeIndex: ", witness[nomeIndex]);
+    // Verify the name is correctly extracted and packed form email body
+    const nameInEmailBytes = new TextEncoder().encode("FRANCESCO CARBONE ").reverse(); // Circuit pack in reverse order
+    expect(witness[1]).toEqual(bytesToBigInt(nameInEmailBytes));
 
-    const dataIndex = circuit.symbols["main.dataIndex"].varIdx;
-    console.log("dataIndex: ", witness[dataIndex]);
+    // Verify the date is correctly extracted and packed form email body
+    const data = new TextEncoder().encode("Wed, 3 May 2023 18:35:03 +0200 ").reverse(); // Circuit pack in reverse order
+    expect(witness[2]).toEqual(bytesToBigInt(data));
 
-    const IUVIndex = circuit.symbols["main.IUVIndex"].varIdx;
-    console.log("IUVIndex: ", witness[IUVIndex]);
+    // Verify the amount is correctly extracted and packed form email body
+    const importo = new TextEncoder().encode("1065").reverse(); // Circuit pack in reverse order
+    expect(witness[3]).toEqual(bytesToBigInt(importo));
 
-    const importoIndex = circuit.symbols["main.importoIndex"].varIdx;
-    console.log("importoIndex: ", witness[importoIndex]);
+    // Verify the matricola is correctly extracted and packed form email body
+    const matricola = new TextEncoder().encode("10834998").reverse(); // Circuit pack in reverse order
+    expect(witness[4]).toEqual(bytesToBigInt(matricola));
+    
+    // Assert pubkey hash
+    expect(witness[5]).toEqual(poseidon.F.toObject(hash));
 
-    const matricolaIndex = circuit.symbols["main.matricolaIndex"].varIdx;
-    console.log("matricolaIndex: ", witness[matricolaIndex]);
+    // Verify the from field is correctly extracted and packed form email body
+    const from = new TextEncoder().encode("messaggi.automatici@polimi.it").reverse(); // Circuit pack in reverse order
+    expect(witness[6]).toEqual(bytesToBigInt(from));
+
+    // Check address public input
+    expect(witness[7]).toEqual(BigInt(ethereumAddress));
+
 
     // Genera la prova e verifica la validità
     const wasm = fs.readFileSync(
@@ -97,4 +111,3 @@ describe("Verifier Circuit Test with Proof Generation", function () {
   it(`should validate email and generate proof`, async function () {
     await testWithEmail();
   });
-});
